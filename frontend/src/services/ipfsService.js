@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Replace with the URL of your backend server
-const BACKEND_API_URL = 'http://localhost:5000/api'; // Or your deployed backend URL
+const BACKEND_API_URL = 'https://dpvs.vercel.app/api'; // Or your deployed backend URL
 
 export class IPFSService {
     constructor() {
