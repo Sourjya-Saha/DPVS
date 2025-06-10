@@ -1,0 +1,10 @@
+{
+  "network": "amoy",
+  "deployer": "0x152C112c95b0d859F708Cf8AFf00a2B00Ae03280",
+  "contracts": {
+    "DoctorRegistry": "0xeeb46086C05d9f720ec0ff7793BF693560F5113c",
+    "PharmacyRegistry": "0x549b902b55a8DA0C1b15d1d88498105755f9f4E8",
+    "PrescriptionRegistry": "0xE1205627279514D8A47Aa1417423A61B8A7dB150"
+  },
+  "deploymentTime": "2025-06-09T11:04:40.487Z"
+}
