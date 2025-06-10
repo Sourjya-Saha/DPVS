@@ -38,7 +38,7 @@ if (PINATA_API_KEY && PINATA_SECRET_KEY) {
 // IMPORTANT: Replace the 'origin' with your actual frontend deployment URL.
 // If your frontend is deployed at 'https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', use that.
 const corsOptions = {
-    origin: ['https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', 'http://localhost:3000'], // Your frontend's deployed URL + localhost for dev
+    origin: ['https://dpvs1o.vercel.app', 'https://dpvs1o-git-main-sourjya-sahas-projects.vercel.app'], // Your frontend's deployed URL + localhost for dev
     methods: ['GET', 'POST'], // Specify allowed methods (GET for test-connection, POST for upload)
     credentials: true, // Set to true if you are handling cookies or authorization headers
     optionsSuccessStatus: 204 // For preflight requests
