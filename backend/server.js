@@ -4,11 +4,10 @@ require('dotenv').config(); // Load environment variables from .env
 const express = require('express');
 const cors = require('cors'); // For Cross-Origin Resource Sharing
 const pinataSDK = require('@pinata/sdk');
-const stream = require('stream'); // Import the stream module
+const { Readable } = require('stream'); // Import Readable from stream module
 const multer = require('multer'); // For handling file uploads
 
 const app = express();
-const port = process.env.PORT || 5000; // Use a different port than your React app (e.g., 5000)
 
 // Pinata API keys (ensure these are set as environment variables in Vercel)
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
@@ -27,16 +26,19 @@ console.log(`DEBUG BACKEND: Is PINATA_SECRET_KEY valid? ${!!PINATA_SECRET_KEY}`)
 if (!PINATA_API_KEY || !PINATA_SECRET_KEY) {
     console.error("PINATA_API_KEY or PINATA_SECRET_KEY are not set in backend environment variables!");
     console.error("Please ensure these are configured in your Vercel project settings (Environment Variables).");
-    throw new Error("Pinata API keys are missing or invalid in backend environment.");
+    // Don't throw error immediately - let Vercel handle gracefully
 }
 
-const pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_KEY);
+let pinata;
+if (PINATA_API_KEY && PINATA_SECRET_KEY) {
+    pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_KEY);
+}
 
 // --- CORS Configuration ---
 // IMPORTANT: Replace the 'origin' with your actual frontend deployment URL.
 // If your frontend is deployed at 'https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', use that.
 const corsOptions = {
-    origin: 'https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', // Your frontend's deployed URL
+    origin: ['https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', 'http://localhost:3000'], // Your frontend's deployed URL + localhost for dev
     methods: ['GET', 'POST'], // Specify allowed methods (GET for test-connection, POST for upload)
     credentials: true, // Set to true if you are handling cookies or authorization headers
     optionsSuccessStatus: 204 // For preflight requests
@@ -49,11 +51,24 @@ app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
 const storage = multer.memoryStorage(); // Store file in memory as a Buffer
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
 
 // Endpoint for uploading PDF to IPFS
 app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (req, res) => {
     try {
+        // Check if Pinata is initialized
+        if (!pinata) {
+            return res.status(500).json({ 
+                error: 'Pinata API keys not configured properly.',
+                details: 'Please check environment variables in Vercel dashboard.'
+            });
+        }
+
         if (!req.file) {
             return res.status(400).json({ error: 'No PDF file provided.' });
         }
@@ -62,7 +77,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
         }
 
         const fileBuffer = req.file.buffer; // Get the file as a Buffer
-        const readableStreamForFile = stream.Readable.from(fileBuffer); // Use imported stream module
+        const readableStreamForFile = Readable.from(fileBuffer); // Use imported Readable
 
         const fileName = `prescription-${req.body.patientName}-${Date.now()}.pdf`;
 
@@ -73,7 +88,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
                 keyvalues: {
                     doctor: req.body.doctorName || 'unknown_doctor',
                     patient: req.body.patientName,
-                    patientAddress: req.body.patientAddress || 'unknown_address', // CORRECTED access here
+                    patientAddress: req.body.patientAddress || 'unknown_address',
                     issuedAt: new Date().toISOString(),
                     project: 'DPVS',
                     type: 'prescription-pdf',
@@ -85,7 +100,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
 
         res.json({
             hash: result.IpfsHash,
-            url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash},` // Fixed missing closing parenthesis/quote
+            url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash}`, // Fixed the URL format
             size: result.PinSize
         });
 
@@ -103,6 +118,15 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
 // Endpoint to test Pinata connection from backend
 app.get('/api/test-pinata-connection', async (req, res) => {
     try {
+        // Check if Pinata is initialized
+        if (!pinata) {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Pinata API keys not configured properly.',
+                details: 'Please check environment variables in Vercel dashboard.'
+            });
+        }
+
         console.log("DEBUG BACKEND: Testing Pinata authentication...");
         const result = await pinata.testAuthentication();
         console.log('Pinata connection successful (backend):', result);
@@ -115,9 +139,26 @@ app.get('/api/test-pinata-connection', async (req, res) => {
 
 // Basic root route for health checks or initial access
 app.get('/', (req, res) => {
-    res.send('DPVS Backend API is running!');
+    res.json({ 
+        message: 'DPVS Backend API is running!',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'production'
+    });
 });
 
-app.listen(port, () => {
-    console.log(`Backend server listening at http://localhost:${port}`);
+// Handle 404 routes
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Route not found' });
 });
+
+// Global error handler
+app.use((error, req, res, next) => {
+    console.error('Global error handler:', error);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    });
+});
+
+// Export the Express app for Vercel
+module.exports = app;
