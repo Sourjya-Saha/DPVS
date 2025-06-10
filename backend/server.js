@@ -1,5 +1,6 @@
-// server.js (example using Express)
+// server.js
 require('dotenv').config(); // Load environment variables from .env
+
 const express = require('express');
 const cors = require('cors'); // For Cross-Origin Resource Sharing
 const pinataSDK = require('@pinata/sdk');
@@ -9,11 +10,11 @@ const multer = require('multer'); // For handling file uploads
 const app = express();
 const port = process.env.PORT || 5000; // Use a different port than your React app (e.g., 5000)
 
-// Pinata API keys (ensure these are in your backend's .env)
+// Pinata API keys (ensure these are set as environment variables in Vercel)
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
 const PINATA_SECRET_KEY = process.env.PINATA_SECRET_KEY;
 
-// --- CRITICAL DEBUG CONSOLE.LOGS ---
+// --- CRITICAL DEBUG CONSOLE.LOGS (will appear in Vercel logs) ---
 // These logs will show you EXACTLY what API keys your Node.js process is loading.
 // Compare these outputs with the keys on your Pinata dashboard.
 console.log("DEBUG BACKEND: Attempting to load PINATA_API_KEY...");
@@ -24,15 +25,26 @@ console.log(`DEBUG BACKEND: Is PINATA_SECRET_KEY valid? ${!!PINATA_SECRET_KEY}`)
 // --- END CRITICAL DEBUG CONSOLE.LOGS ---
 
 if (!PINATA_API_KEY || !PINATA_SECRET_KEY) {
-    console.error("PINATA_API_KEY or PINATA_SECRET_KEY are not set in backend .env! Please check your backend/.env file and ensure it's in the correct directory where the server is run.");
-    // Do not exit process. Allows testing connection endpoint to still work.
-    // process.exit(1);
-    throw new Error("Pinata API keys are missing or invalid in backend environment."); // Throw error instead of process.exit
+    console.error("PINATA_API_KEY or PINATA_SECRET_KEY are not set in backend environment variables!");
+    console.error("Please ensure these are configured in your Vercel project settings (Environment Variables).");
+    throw new Error("Pinata API keys are missing or invalid in backend environment.");
 }
 
 const pinata = new pinataSDK(PINATA_API_KEY, PINATA_SECRET_KEY);
 
-app.use(cors()); // Enable CORS for your frontend to access
+// --- CORS Configuration ---
+// IMPORTANT: Replace the 'origin' with your actual frontend deployment URL.
+// If your frontend is deployed at 'https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', use that.
+const corsOptions = {
+    origin: 'https://decentralizedprescriptionverificationsys-sourjya-sahas-projects.vercel.app', // Your frontend's deployed URL
+    methods: ['GET', 'POST'], // Specify allowed methods (GET for test-connection, POST for upload)
+    credentials: true, // Set to true if you are handling cookies or authorization headers
+    optionsSuccessStatus: 204 // For preflight requests
+};
+
+app.use(cors(corsOptions)); // Apply CORS with your specific options
+// --- END CORS Configuration ---
+
 app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
@@ -61,7 +73,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
                 keyvalues: {
                     doctor: req.body.doctorName || 'unknown_doctor',
                     patient: req.body.patientName,
-                    patientAddress: req.body.patientAddress || 'unknown_address',
+                    patientAddress: req.body.body.patientAddress || 'unknown_address', // Corrected access here
                     issuedAt: new Date().toISOString(),
                     project: 'DPVS',
                     type: 'prescription-pdf',
@@ -79,7 +91,12 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
 
     } catch (error) {
         console.error('Backend Pinata upload error:', error);
-        res.status(500).json({ error: 'Failed to upload to IPFS.', details: error.message, stack: error.stack });
+        // Provide more detailed error response during development/debugging
+        res.status(500).json({
+            error: 'Failed to upload to IPFS.',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined // Only expose stack in dev
+        });
     }
 });
 
@@ -95,6 +112,12 @@ app.get('/api/test-pinata-connection', async (req, res) => {
         res.status(500).json({ success: false, message: 'Pinata backend connection failed.', details: error.message });
     }
 });
+
+// Basic root route for health checks or initial access
+app.get('/', (req, res) => {
+    res.send('DPVS Backend API is running!');
+});
+
 
 app.listen(port, () => {
     console.log(`Backend server listening at http://localhost:${port}`);
