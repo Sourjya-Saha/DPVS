@@ -58,9 +58,12 @@ If valid and not yet fulfilled by that specific pharmacy, the pharmacist can ini
 🛠️ Getting Started
 To set up the DPVS locally, follow these steps:
 
-Clone the repository:
+Clone the repository -
 
-git clone [YOUR_REPO_URL]
+➡️ GitHub Repo: https://lnkd.in/g7E5xv2y
+➡️ Deployed App: https://dpvs1o.vercel.app/
+
+
 cd decentralized-prescription-system
 
 Install dependencies:
