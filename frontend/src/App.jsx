@@ -853,7 +853,7 @@ function App() {
         {/* Reduced mt and pt */}
         <div className="border-t border-white/10 mt-5 pt-5 sm:mt-6 sm:pt-6 flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-300 text-xs sm:text-sm mb-2 sm:mb-3 md:mb-0"> {/* Adjusted mb */}
-                © 2024 DPVS. Securing healthcare through blockchain technology.
+                © 2025 DPVS by Sourjya. Securing healthcare through blockchain technology.
             </div>
             <div className="flex items-center space-x-3 sm:space-x-4"> {/* Reduced space-x */}
                 <a href="https://github.com/Sourjya-Saha" className="text-gray-300 hover:text-white transition-colors">
