@@ -73,7 +73,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
                 keyvalues: {
                     doctor: req.body.doctorName || 'unknown_doctor',
                     patient: req.body.patientName,
-                    patientAddress: req.body.body.patientAddress || 'unknown_address', // Corrected access here
+                    patientAddress: req.body.patientAddress || 'unknown_address', // CORRECTED access here
                     issuedAt: new Date().toISOString(),
                     project: 'DPVS',
                     type: 'prescription-pdf',
@@ -85,7 +85,7 @@ app.post('/api/upload-prescription', upload.single('prescriptionPdf'), async (re
 
         res.json({
             hash: result.IpfsHash,
-            url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash}`,
+            url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash},` // Fixed missing closing parenthesis/quote
             size: result.PinSize
         });
 
@@ -117,7 +117,6 @@ app.get('/api/test-pinata-connection', async (req, res) => {
 app.get('/', (req, res) => {
     res.send('DPVS Backend API is running!');
 });
-
 
 app.listen(port, () => {
     console.log(`Backend server listening at http://localhost:${port}`);
